@@ -42,13 +42,13 @@ appears in more than one dataset split.
 
 | Metric | Result |
 | --- | ---: |
-| Classification accuracy | 0.8200 |
-| Macro precision | 0.8225 |
-| Macro recall | 0.8200 |
-| Macro F1-score | 0.8183 |
-| Quality-score MAE | 9.6628 |
-| Quality-score RMSE | 13.7515 |
-| Quality-score R² | 0.6972 |
+| Classification accuracy | 0.8125 |
+| Macro precision | 0.8162 |
+| Macro recall | 0.8125 |
+| Macro F1-score | 0.8110 |
+| Quality-score MAE | 9.6244 |
+| Quality-score RMSE | 13.7379 |
+| Quality-score R² | 0.6978 |
 
 The model uses 12 explainable image statistics. Its most important features are
 bright-pixel ratio, Laplacian variance, blockiness, estimated noise, and mean
