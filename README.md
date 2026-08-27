@@ -59,3 +59,38 @@ Run the dataset test with:
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+## Backend API
+
+Start the FastAPI development server from the project root:
+
+```bash
+uvicorn backend.app.main:app --reload
+```
+
+The API is available at `http://localhost:8000`, with interactive documentation
+at `http://localhost:8000/docs`.
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/health` | Service and loaded-model status |
+| `POST` | `/api/v1/analyses` | Upload and analyze one image |
+| `GET` | `/api/v1/analyses` | Paginated analysis history |
+| `GET` | `/api/v1/analyses/{id}` | Retrieve one previous result |
+| `GET` | `/uploads/{filename}` | Retrieve a stored uploaded image |
+
+Upload example:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/analyses \
+  -F "image=@sample.jpg"
+```
+
+Supported formats are JPEG, PNG, and WebP. The default upload limit is 10 MB.
+The API uses `201` for a successful analysis, `400` for unreadable images, `404`
+for missing results, `413` for oversized uploads, `415` for unsupported media,
+and `422` for invalid request parameters.
+
+Configuration is read from `MODEL_PATH`, `DATABASE_PATH`, `UPLOAD_DIR`, and
+`MAX_UPLOAD_MB`. Their defaults are shown in `.env.example`. SQLite tables are
+created automatically when the application starts.
