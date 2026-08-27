@@ -34,6 +34,20 @@ class ImageAnalyzer:
         confidence = float(probabilities[class_index])
         quality_score = float(np.clip(self.regressor.predict(values)[0], 0, 100))
 
+        severity = None
+        if predicted_issue == "blur":
+            edge_density = statistics["edge_density"]
+            gradient_strength = statistics["gradient_strength"]
+            if edge_density <= 0.005 or gradient_strength <= 22:
+                severity = "high"
+                quality_score = min(quality_score, 35)
+            elif edge_density <= 0.025 or gradient_strength <= 38:
+                severity = "medium"
+                quality_score = min(quality_score, 60)
+            else:
+                severity = "low"
+                quality_score = min(quality_score, 80)
+
         if quality_score < 40:
             quality_label = "POTENTIALLY_DEFECTIVE"
         elif predicted_issue != "acceptable" or quality_score < 75:
@@ -43,12 +57,13 @@ class ImageAnalyzer:
 
         issues = []
         if predicted_issue != "acceptable":
-            if quality_score >= 75:
-                severity = "low"
-            elif quality_score >= 50:
-                severity = "medium"
-            else:
-                severity = "high"
+            if severity is None:
+                if quality_score >= 75:
+                    severity = "low"
+                elif quality_score >= 50:
+                    severity = "medium"
+                else:
+                    severity = "high"
             issues.append(
                 {
                     "type": predicted_issue,
