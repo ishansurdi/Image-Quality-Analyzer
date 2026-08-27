@@ -109,6 +109,23 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 413)
 
+    def test_analysis_failure_returns_500(self) -> None:
+        analyzer = self.client.app.state.analyzer
+        uploads_before = set(self.settings.upload_dir.iterdir())
+
+        class FailingAnalyzer:
+            def analyze(self, image):
+                raise RuntimeError("test failure")
+
+        self.client.app.state.analyzer = FailingAnalyzer()
+        try:
+            response = self.upload_sample()
+        finally:
+            self.client.app.state.analyzer = analyzer
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(set(self.settings.upload_dir.iterdir()), uploads_before)
+
 
 if __name__ == "__main__":
     unittest.main()
