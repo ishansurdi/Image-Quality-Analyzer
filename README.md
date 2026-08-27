@@ -94,3 +94,20 @@ and `422` for invalid request parameters.
 Configuration is read from `MODEL_PATH`, `DATABASE_PATH`, `UPLOAD_DIR`, and
 `MAX_UPLOAD_MB`. Their defaults are shown in `.env.example`. SQLite tables are
 created automatically when the application starts.
+
+## Frontend
+
+The frontend uses plain HTML, Tailwind CSS, and vanilla JavaScript. It has no
+framework, package installation, or build step. Start it in a second terminal:
+
+```bash
+python -m http.server 5173 --directory frontend
+```
+
+Open `http://localhost:5173`. The page connects to port `8000` on the current
+hostname and provides image preview, drag-and-drop upload, analysis results,
+loading and error states, explainable statistics, and previous-analysis history.
+
+For a different backend address, set `window.IMAGE_QUALITY_API_URL` before
+`app.js` loads. The backend permits local frontend origins on ports `5173` and
+`3000`.
