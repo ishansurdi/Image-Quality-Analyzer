@@ -5,6 +5,7 @@ import cv2
 import joblib
 import numpy as np
 
+from backend.app.analyzer import ImageAnalyzer
 from scripts.extract_features import FEATURE_FIELDS, extract_image_features
 
 
@@ -24,6 +25,19 @@ class TrainedModelTests(unittest.TestCase):
         self.assertAlmostEqual(float(probabilities.sum()), 1.0)
         self.assertGreaterEqual(quality_score, 0)
         self.assertLessEqual(quality_score, 100)
+
+    def test_severe_blur_receives_low_quality_score(self) -> None:
+        image_path = next(Path("Data/images/test").glob("*.jpg"))
+        image = cv2.imread(str(image_path))
+        blurred = cv2.GaussianBlur(image, (51, 51), 0)
+        analyzer = ImageAnalyzer(Path("artifacts/quality_model.joblib"))
+
+        result = analyzer.analyze(blurred)
+
+        self.assertLessEqual(result["quality_score"], 35)
+        self.assertEqual(result["quality_label"], "POTENTIALLY_DEFECTIVE")
+        self.assertEqual(result["issues"][0]["type"], "blur")
+        self.assertEqual(result["issues"][0]["severity"], "high")
 
 
 if __name__ == "__main__":
