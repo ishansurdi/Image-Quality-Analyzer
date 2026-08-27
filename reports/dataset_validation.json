@@ -1,0 +1,45 @@
+{
+  "valid": true,
+  "total_images": 3000,
+  "class_counts": {
+    "acceptable": 500,
+    "blur": 500,
+    "compression": 500,
+    "noise": 500,
+    "overexposure": 500,
+    "underexposure": 500
+  },
+  "severity_counts": {
+    "blur:high": 158,
+    "blur:low": 157,
+    "blur:medium": 185,
+    "compression:high": 160,
+    "compression:low": 161,
+    "compression:medium": 179,
+    "noise:high": 168,
+    "noise:low": 161,
+    "noise:medium": 171,
+    "overexposure:high": 151,
+    "overexposure:low": 164,
+    "overexposure:medium": 185,
+    "underexposure:high": 170,
+    "underexposure:low": 177,
+    "underexposure:medium": 153
+  },
+  "split_counts": {
+    "test": 1200,
+    "train": 1200,
+    "val": 600
+  },
+  "dimensions": {
+    "321x481": 912,
+    "481x321": 2088
+  },
+  "split_overlap": {
+    "test:train": 0,
+    "test:val": 0,
+    "train:val": 0
+  },
+  "missing_files": [],
+  "unreadable_files": []
+}
