@@ -52,12 +52,22 @@ def calculate_blockiness(gray: np.ndarray) -> float:
 def extract_image_features(image: np.ndarray) -> dict[str, float]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-    gradient_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
-    gradient_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    height, width = gray.shape
+    if height >= 20 and width >= 20:
+        margin_y = max(1, int(height * 0.05))
+        margin_x = max(1, int(width * 0.05))
+        detail_region = gray[margin_y:-margin_y, margin_x:-margin_x]
+    else:
+        detail_region = gray
+
+    laplacian = cv2.Laplacian(detail_region, cv2.CV_64F)
+    gradient_x = cv2.Sobel(detail_region, cv2.CV_64F, 1, 0, ksize=3)
+    gradient_y = cv2.Sobel(detail_region, cv2.CV_64F, 0, 1, ksize=3)
     gradient = cv2.magnitude(gradient_x, gradient_y)
-    edges = cv2.Canny(gray, 100, 200)
-    residual = gray.astype(np.float32) - cv2.GaussianBlur(gray, (3, 3), 0)
+    edges = cv2.Canny(detail_region, 100, 200)
+    residual = detail_region.astype(np.float32) - cv2.GaussianBlur(
+        detail_region, (3, 3), 0
+    )
     saturation = hsv[:, :, 1]
 
     return {
@@ -72,7 +82,7 @@ def extract_image_features(image: np.ndarray) -> dict[str, float]:
         "entropy": calculate_entropy(gray),
         "saturation_mean": float(saturation.mean()),
         "saturation_std": float(saturation.std()),
-        "blockiness": calculate_blockiness(gray),
+        "blockiness": calculate_blockiness(detail_region),
     }
 
 
