@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# JavaScript
+node_modules/
+dist/
+
+# Local configuration
+.env
+
+# Datasets and generated model files
+Data/
+data/
+artifacts/
+models/
+
+# Uploaded files and local databases
+uploads/
+*.db
+*.sqlite3
+
+# Editor and operating system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
