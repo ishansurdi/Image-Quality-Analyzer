@@ -2,3 +2,7 @@ numpy==2.2.6
 opencv-python-headless==4.10.0.84
 scikit-learn==1.7.1
 joblib==1.5.1
+fastapi==0.116.1
+uvicorn==0.35.0
+python-multipart==0.0.20
+httpx==0.28.1
