@@ -1,4 +1,6 @@
-const API_BASE_URL = window.IMAGE_QUALITY_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  window.IMAGE_QUALITY_API_URL ||
+  `${window.location.protocol}//${window.location.hostname}:8000`;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
