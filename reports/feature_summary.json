@@ -1,0 +1,55 @@
+{
+  "total_rows": 3000,
+  "feature_count": 12,
+  "invalid_values": 0,
+  "class_means": {
+    "acceptable": {
+      "brightness_mean": 109.0162,
+      "dark_pixel_ratio": 0.1168,
+      "bright_pixel_ratio": 0.0606,
+      "laplacian_variance": 1775.6624,
+      "noise_estimate": 8.3606,
+      "blockiness": 9.4724
+    },
+    "blur": {
+      "brightness_mean": 109.0271,
+      "dark_pixel_ratio": 0.0967,
+      "bright_pixel_ratio": 0.0463,
+      "laplacian_variance": 30.7677,
+      "noise_estimate": 1.0534,
+      "blockiness": 2.7775
+    },
+    "compression": {
+      "brightness_mean": 108.9886,
+      "dark_pixel_ratio": 0.1159,
+      "bright_pixel_ratio": 0.0592,
+      "laplacian_variance": 1390.1418,
+      "noise_estimate": 7.5625,
+      "blockiness": 11.6287
+    },
+    "noise": {
+      "brightness_mean": 108.6009,
+      "dark_pixel_ratio": 0.1259,
+      "bright_pixel_ratio": 0.0609,
+      "laplacian_variance": 5718.5563,
+      "noise_estimate": 13.669,
+      "blockiness": 18.7377
+    },
+    "overexposure": {
+      "brightness_mean": 153.8448,
+      "dark_pixel_ratio": 0.0656,
+      "bright_pixel_ratio": 0.2815,
+      "laplacian_variance": 2772.6296,
+      "noise_estimate": 10.3054,
+      "blockiness": 11.1912
+    },
+    "underexposure": {
+      "brightness_mean": 56.8881,
+      "dark_pixel_ratio": 0.4004,
+      "bright_pixel_ratio": 0.0,
+      "laplacian_variance": 600.1497,
+      "noise_estimate": 4.5487,
+      "blockiness": 5.165
+    }
+  }
+}
