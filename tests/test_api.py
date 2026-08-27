@@ -2,6 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import cv2
+import numpy as np
 from fastapi.testclient import TestClient
 
 from backend.app.config import Settings
@@ -93,6 +95,18 @@ class ApiTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    def test_divisible_dimensions_webp_returns_201(self) -> None:
+        image = np.full((256, 256, 3), 128, dtype=np.uint8)
+        encoded, content = cv2.imencode(".webp", image)
+        self.assertTrue(encoded)
+
+        response = self.client.post(
+            "/api/v1/analyses",
+            files={"image": ("sample.webp", content.tobytes(), "image/webp")},
+        )
+
+        self.assertEqual(response.status_code, 201, response.text)
 
     def test_oversized_image_returns_413(self) -> None:
         small_settings = Settings(
