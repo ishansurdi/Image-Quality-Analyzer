@@ -14,7 +14,8 @@ dist/
 # Datasets and generated model files
 Data/
 data/
-artifacts/
+artifacts/*
+!artifacts/quality_model.joblib
 models/
 
 # Uploaded files and local databases
