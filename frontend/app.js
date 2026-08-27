@@ -103,6 +103,11 @@ function setAnalyzing(isAnalyzing) {
   elements.analyzeButtonText.textContent = isAnalyzing ? "Analyzing..." : "Analyze image";
 }
 
+function clearResult() {
+  elements.analysisResult.classList.add("hidden");
+  elements.emptyResult.classList.remove("hidden");
+}
+
 async function requestJson(url, options = {}) {
   const response = await fetch(`${API_BASE_URL}${url}`, options);
   const data = await response.json().catch(() => ({}));
@@ -182,6 +187,7 @@ function renderResult(result) {
 async function analyzeSelectedImage() {
   if (!selectedFile) return;
   clearError();
+  clearResult();
   setAnalyzing(true);
   const formData = new FormData();
   formData.append("image", selectedFile);
