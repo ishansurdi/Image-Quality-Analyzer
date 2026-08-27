@@ -33,8 +33,19 @@ def calculate_entropy(gray: np.ndarray) -> float:
 
 def calculate_blockiness(gray: np.ndarray) -> float:
     image = gray.astype(np.float32)
-    vertical = np.abs(image[:, 8::8] - image[:, 7::8]).mean()
-    horizontal = np.abs(image[8::8, :] - image[7::8, :]).mean()
+    vertical_boundaries = np.arange(8, image.shape[1], 8)
+    horizontal_boundaries = np.arange(8, image.shape[0], 8)
+    vertical = 0.0
+    if vertical_boundaries.size:
+        vertical = np.abs(
+            image[:, vertical_boundaries] - image[:, vertical_boundaries - 1]
+        ).mean()
+
+    horizontal = 0.0
+    if horizontal_boundaries.size:
+        horizontal = np.abs(
+            image[horizontal_boundaries, :] - image[horizontal_boundaries - 1, :]
+        ).mean()
     return float((vertical + horizontal) / 2)
 
 
