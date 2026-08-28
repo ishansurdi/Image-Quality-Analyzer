@@ -29,10 +29,38 @@ class ImageAnalyzer:
             dtype=np.float32,
         )
         probabilities = self.classifier.predict_proba(values)[0]
+        class_probabilities = {
+            str(name): float(probability)
+            for name, probability in zip(self.classifier.classes_, probabilities)
+        }
         class_index = int(np.argmax(probabilities))
         predicted_issue = str(self.classifier.classes_[class_index])
         confidence = float(probabilities[class_index])
         quality_score = float(np.clip(self.regressor.predict(values)[0], 0, 100))
+
+        issues = []
+        bright_pixel_ratio = statistics["bright_pixel_ratio"]
+        if bright_pixel_ratio >= 0.12:
+            if bright_pixel_ratio >= 0.40:
+                exposure_severity = "high"
+                quality_score = min(quality_score, 35)
+            elif bright_pixel_ratio >= 0.22:
+                exposure_severity = "medium"
+                quality_score = min(quality_score, 60)
+            else:
+                exposure_severity = "low"
+                quality_score = min(quality_score, 80)
+            exposure_confidence = max(
+                class_probabilities.get("overexposure", 0),
+                min(0.99, bright_pixel_ratio / 0.60),
+            )
+            issues.append(
+                {
+                    "type": "overexposure",
+                    "severity": exposure_severity,
+                    "confidence": round(exposure_confidence, 4),
+                }
+            )
 
         severity = None
         if predicted_issue == "blur":
@@ -50,13 +78,13 @@ class ImageAnalyzer:
 
         if quality_score < 40:
             quality_label = "POTENTIALLY_DEFECTIVE"
-        elif predicted_issue != "acceptable" or quality_score < 75:
+        elif issues or predicted_issue != "acceptable" or quality_score < 75:
             quality_label = "DEGRADED"
         else:
             quality_label = "ACCEPTABLE"
 
-        issues = []
-        if predicted_issue != "acceptable":
+        existing_issue_types = {issue["type"] for issue in issues}
+        if predicted_issue != "acceptable" and predicted_issue not in existing_issue_types:
             if severity is None:
                 if quality_score >= 75:
                     severity = "low"
@@ -71,6 +99,9 @@ class ImageAnalyzer:
                     "confidence": round(confidence, 4),
                 }
             )
+
+        severity_order = {"high": 0, "medium": 1, "low": 2}
+        issues.sort(key=lambda issue: (severity_order[issue["severity"]], -issue["confidence"]))
 
         height, width = image.shape[:2]
         return {
