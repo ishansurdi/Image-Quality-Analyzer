@@ -1,6 +1,8 @@
-const API_BASE_URL =
-  window.IMAGE_QUALITY_API_URL ||
-  `${window.location.protocol}//${window.location.hostname}:8000`;
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1"]);
+const DEFAULT_API_URL = LOCAL_HOSTNAMES.has(window.location.hostname)
+  ? `${window.location.protocol}//${window.location.hostname}:8000`
+  : "https://smartcity-9eso.onrender.com";
+const API_BASE_URL = window.IMAGE_QUALITY_API_URL || DEFAULT_API_URL;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
