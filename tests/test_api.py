@@ -46,7 +46,7 @@ class ApiTests(unittest.TestCase):
         response = self.client.get("/health")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"status": "healthy", "model_version": "1.0.0"})
+        self.assertEqual(response.json(), {"status": "healthy", "model_version": "2.0.0"})
 
     def test_upload_returns_and_persists_analysis(self) -> None:
         response = self.upload_sample()
