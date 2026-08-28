@@ -22,6 +22,9 @@ from extract_features import FEATURE_FIELDS
 
 
 QUALITY_SCORES = {"none": 100, "low": 80, "medium": 55, "high": 30}
+SYNTHETIC_CLASSIFICATION_WEIGHT = 6.0
+SYNTHETIC_REGRESSION_WEIGHT = 2.0
+MODEL_TREES = 150
 
 
 def load_features(path: Path) -> list[dict[str, str]]:
@@ -36,8 +39,15 @@ def prepare_split(rows: list[dict[str, str]], split: str) -> tuple[np.ndarray, n
         dtype=np.float32,
     )
     issues = np.array([row["issue"] for row in selected])
-    scores = np.array([QUALITY_SCORES[row["severity"]] for row in selected], dtype=np.float32)
+    scores = np.array(
+        [float(row.get("quality_score") or QUALITY_SCORES[row["severity"]]) for row in selected],
+        dtype=np.float32,
+    )
     return features, issues, scores
+
+
+def combine_splits(*splits: tuple[np.ndarray, np.ndarray, np.ndarray]):
+    return tuple(np.concatenate(values) for values in zip(*splits))
 
 
 def classification_metrics(
@@ -75,26 +85,49 @@ def regression_metrics(expected: np.ndarray, predicted: np.ndarray) -> dict[str,
     }
 
 
-def train_models(rows: list[dict[str, str]], seed: int) -> tuple[dict, dict]:
-    train_x, train_issues, train_scores = prepare_split(rows, "train")
-    validation_x, validation_issues, validation_scores = prepare_split(rows, "val")
-    test_x, test_issues, test_scores = prepare_split(rows, "test")
+def train_models(
+    rows: list[dict[str, str]],
+    kadid_rows: list[dict[str, str]],
+    seed: int,
+) -> tuple[dict, dict]:
+    synthetic_train = prepare_split(rows, "train")
+    kadid_train = prepare_split(kadid_rows, "train")
+    train_x, train_issues, train_scores = combine_splits(synthetic_train, kadid_train)
+
+    synthetic_validation = prepare_split(rows, "val")
+    synthetic_test = prepare_split(rows, "test")
+    kadid_validation = prepare_split(kadid_rows, "val")
+    kadid_test = prepare_split(kadid_rows, "test")
 
     classifier = RandomForestClassifier(
-        n_estimators=300,
+        n_estimators=MODEL_TREES,
         min_samples_leaf=2,
         class_weight="balanced",
         n_jobs=-1,
         random_state=seed,
     )
     regressor = RandomForestRegressor(
-        n_estimators=300,
+        n_estimators=MODEL_TREES,
         min_samples_leaf=2,
         n_jobs=-1,
         random_state=seed,
     )
-    classifier.fit(train_x, train_issues)
-    regressor.fit(train_x, train_scores)
+    synthetic_count = len(synthetic_train[0])
+    kadid_count = len(kadid_train[0])
+    classifier_weights = np.concatenate(
+        (
+            np.full(synthetic_count, SYNTHETIC_CLASSIFICATION_WEIGHT),
+            np.ones(kadid_count),
+        )
+    )
+    regression_weights = np.concatenate(
+        (
+            np.full(synthetic_count, SYNTHETIC_REGRESSION_WEIGHT),
+            np.ones(kadid_count),
+        )
+    )
+    classifier.fit(train_x, train_issues, sample_weight=classifier_weights)
+    regressor.fit(train_x, train_scores, sample_weight=regression_weights)
 
     labels = sorted(classifier.classes_.tolist())
     importance = sorted(
@@ -105,26 +138,51 @@ def train_models(rows: list[dict[str, str]], seed: int) -> tuple[dict, dict]:
     report = {
         "dataset": {
             "train_rows": len(train_x),
-            "validation_rows": len(validation_x),
-            "test_rows": len(test_x),
+            "synthetic_train_rows": len(synthetic_train[0]),
+            "kadid_train_rows": len(kadid_train[0]),
+            "synthetic_validation_rows": len(synthetic_validation[0]),
+            "synthetic_test_rows": len(synthetic_test[0]),
+            "kadid_validation_rows": len(kadid_validation[0]),
+            "kadid_test_rows": len(kadid_test[0]),
+            "synthetic_classification_weight": SYNTHETIC_CLASSIFICATION_WEIGHT,
+            "synthetic_regression_weight": SYNTHETIC_REGRESSION_WEIGHT,
+            "model_trees": MODEL_TREES,
         },
         "labels": labels,
         "classification": {
-            "validation": classification_metrics(
-                validation_issues, classifier.predict(validation_x), labels
+            "synthetic_validation": classification_metrics(
+                synthetic_validation[1], classifier.predict(synthetic_validation[0]), labels
             ),
-            "test": classification_metrics(test_issues, classifier.predict(test_x), labels),
+            "synthetic_test": classification_metrics(
+                synthetic_test[1], classifier.predict(synthetic_test[0]), labels
+            ),
+            "kadid_validation": classification_metrics(
+                kadid_validation[1], classifier.predict(kadid_validation[0]), labels
+            ),
+            "kadid_test": classification_metrics(
+                kadid_test[1], classifier.predict(kadid_test[0]), labels
+            ),
         },
         "quality_regression": {
-            "validation": regression_metrics(validation_scores, regressor.predict(validation_x)),
-            "test": regression_metrics(test_scores, regressor.predict(test_x)),
+            "synthetic_validation": regression_metrics(
+                synthetic_validation[2], regressor.predict(synthetic_validation[0])
+            ),
+            "synthetic_test": regression_metrics(
+                synthetic_test[2], regressor.predict(synthetic_test[0])
+            ),
+            "kadid_validation": regression_metrics(
+                kadid_validation[2], regressor.predict(kadid_validation[0])
+            ),
+            "kadid_test": regression_metrics(
+                kadid_test[2], regressor.predict(kadid_test[0])
+            ),
         },
         "feature_importance": {
             name: round(float(value), 6) for name, value in importance
         },
     }
     bundle = {
-        "model_version": "1.0.0",
+        "model_version": "2.0.0",
         "feature_names": list(FEATURE_FIELDS),
         "quality_scores": QUALITY_SCORES,
         "classifier": classifier,
@@ -136,6 +194,11 @@ def train_models(rows: list[dict[str, str]], seed: int) -> tuple[dict, dict]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--features", type=Path, default=Path("artifacts/features.csv"))
+    parser.add_argument(
+        "--kadid-features",
+        type=Path,
+        default=Path("artifacts/kadid_features.csv"),
+    )
     parser.add_argument("--model", type=Path, default=Path("artifacts/quality_model.joblib"))
     parser.add_argument("--report", type=Path, default=Path("reports/model_evaluation.json"))
     parser.add_argument("--seed", type=int, default=42)
@@ -145,16 +208,18 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     rows = load_features(args.features)
-    bundle, report = train_models(rows, args.seed)
+    kadid_rows = load_features(args.kadid_features)
+    bundle, report = train_models(rows, kadid_rows, args.seed)
 
     args.model.parent.mkdir(parents=True, exist_ok=True)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(bundle, args.model)
     args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
-    test_metrics = report["classification"]["test"]
-    print(f"Test accuracy: {test_metrics['accuracy']:.4f}")
-    print(f"Test macro F1: {test_metrics['macro_f1']:.4f}")
+    synthetic_metrics = report["classification"]["synthetic_test"]
+    kadid_metrics = report["classification"]["kadid_test"]
+    print(f"Synthetic test macro F1: {synthetic_metrics['macro_f1']:.4f}")
+    print(f"KADID test macro F1: {kadid_metrics['macro_f1']:.4f}")
     print(f"Saved model to {args.model}")
     print(f"Saved evaluation to {args.report}")
 
