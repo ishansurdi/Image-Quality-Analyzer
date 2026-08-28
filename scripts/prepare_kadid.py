@@ -35,15 +35,18 @@ OUTPUT_FIELDS = (
 )
 
 
-def reference_split(reference_name: str, seed: int) -> str:
-    """Assign every variant of a reference image to the same split."""
-    digest = hashlib.sha256(f"{seed}:{reference_name}".encode()).digest()
-    bucket = int.from_bytes(digest[:4], "big") % 10
-    if bucket < 7:
-        return "train"
-    if bucket < 9:
-        return "val"
-    return "test"
+def build_reference_splits(reference_names: set[str], seed: int) -> dict[str, str]:
+    """Create a deterministic 80/10/10 split of reference images."""
+    ordered = sorted(
+        reference_names,
+        key=lambda name: hashlib.sha256(f"{seed}:{name}".encode()).digest(),
+    )
+    train_end = round(len(ordered) * 0.8)
+    validation_end = round(len(ordered) * 0.9)
+    return {
+        name: "train" if index < train_end else "val" if index < validation_end else "test"
+        for index, name in enumerate(ordered)
+    }
 
 
 def severity_from_level(level: int) -> str:
@@ -59,6 +62,10 @@ def prepare_kadid(dataset_dir: Path, output_path: Path, seed: int) -> int:
     image_dir = dataset_dir / "images"
     with metadata_path.open(newline="", encoding="utf-8-sig") as file:
         metadata = list(csv.DictReader(file))
+    reference_splits = build_reference_splits(
+        {row["ref_img"] for row in metadata},
+        seed,
+    )
 
     rows = []
     for row in metadata:
@@ -77,7 +84,7 @@ def prepare_kadid(dataset_dir: Path, output_path: Path, seed: int) -> int:
             {
                 "file_path": str(image_path),
                 "source_image": row["ref_img"],
-                "split": reference_split(row["ref_img"], seed),
+                "split": reference_splits[row["ref_img"]],
                 "issue": DISTORTION_CLASSES[distortion],
                 "severity": severity_from_level(level),
                 "level": level,
