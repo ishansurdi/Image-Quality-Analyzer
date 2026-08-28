@@ -39,6 +39,21 @@ class TrainedModelTests(unittest.TestCase):
         self.assertEqual(result["issues"][0]["type"], "blur")
         self.assertEqual(result["issues"][0]["severity"], "high")
 
+    def test_overexposure_is_detected_with_blur(self) -> None:
+        image_path = next(Path("Data/images/test").glob("*.jpg"))
+        image = cv2.imread(str(image_path))
+        blurred = cv2.GaussianBlur(image, (21, 21), 0)
+        overexposed = cv2.convertScaleAbs(blurred, alpha=2.5, beta=40)
+        analyzer = ImageAnalyzer(Path("artifacts/quality_model.joblib"))
+
+        result = analyzer.analyze(overexposed)
+        issue_types = [issue["type"] for issue in result["issues"]]
+
+        self.assertLessEqual(result["quality_score"], 35)
+        self.assertEqual(result["quality_label"], "POTENTIALLY_DEFECTIVE")
+        self.assertEqual(issue_types[0], "overexposure")
+        self.assertIn("blur", issue_types)
+
 
 if __name__ == "__main__":
     unittest.main()
