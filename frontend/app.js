@@ -24,6 +24,7 @@ const elements = {
   qualityLabel: document.querySelector("#quality-label"),
   qualityScore: document.querySelector("#quality-score"),
   scoreBar: document.querySelector("#score-bar"),
+  severityConfidenceHelp: document.querySelector("#severity-confidence-help"),
   issuesList: document.querySelector("#issues-list"),
   statisticsList: document.querySelector("#statistics-list"),
   historyLoading: document.querySelector("#history-loading"),
@@ -127,6 +128,11 @@ function qualityColors(label) {
 
 function renderIssues(issues) {
   elements.issuesList.replaceChildren();
+  const hasSeverityConfidence = issues.some(
+    (issue) => Number.isFinite(issue.severity_confidence),
+  );
+  elements.severityConfidenceHelp.classList.toggle("hidden", !hasSeverityConfidence);
+
   if (issues.length === 0) {
     const message = document.createElement("p");
     message.className = "rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700";
@@ -160,11 +166,6 @@ function renderIssues(issues) {
       severityConfidence.className = "mt-0.5 text-xs text-slate-500";
       severityConfidence.textContent = `${Math.round(issue.severity_confidence * 100)}% severity confidence`;
       confidenceDetails.append(severityConfidence);
-    } else {
-      const severityMethod = document.createElement("p");
-      severityMethod.className = "mt-0.5 text-xs text-slate-500";
-      severityMethod.textContent = "Rule-based severity";
-      confidenceDetails.append(severityMethod);
     }
 
     item.append(description, confidenceDetails);
