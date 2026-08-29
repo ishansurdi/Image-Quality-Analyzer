@@ -16,6 +16,9 @@ class ImageAnalyzer:
         self.bundle = joblib.load(model_path)
         self.classifier = self.bundle["classifier"]
         self.regressor = self.bundle["regressor"]
+        self.compression_severity_classifier = self.bundle[
+            "compression_severity_classifier"
+        ]
         self.feature_names = self.bundle["feature_names"]
         self.model_version = self.bundle["model_version"]
 
@@ -75,6 +78,10 @@ class ImageAnalyzer:
             else:
                 severity = "low"
                 quality_score = min(quality_score, 80)
+        elif predicted_issue == "compression":
+            severity = str(self.compression_severity_classifier.predict(values)[0])
+            score_limits = {"high": 35, "medium": 60, "low": 80}
+            quality_score = min(quality_score, score_limits[severity])
 
         if quality_score < 40:
             quality_label = "POTENTIALLY_DEFECTIVE"
