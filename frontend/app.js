@@ -148,10 +148,21 @@ function renderIssues(issues) {
     severity.textContent = `${issue.severity} severity`;
     description.append(name, severity);
 
-    const confidence = document.createElement("span");
-    confidence.className = "text-sm font-semibold text-slate-700";
-    confidence.textContent = `${Math.round(issue.confidence * 100)}% confidence`;
-    item.append(description, confidence);
+    const confidenceDetails = document.createElement("div");
+    confidenceDetails.className = "text-right";
+    const issueConfidence = document.createElement("p");
+    issueConfidence.className = "text-sm font-semibold text-slate-700";
+    issueConfidence.textContent = `${Math.round(issue.confidence * 100)}% issue confidence`;
+    confidenceDetails.append(issueConfidence);
+
+    if (Number.isFinite(issue.severity_confidence)) {
+      const severityConfidence = document.createElement("p");
+      severityConfidence.className = "mt-0.5 text-xs text-slate-500";
+      severityConfidence.textContent = `${Math.round(issue.severity_confidence * 100)}% severity confidence`;
+      confidenceDetails.append(severityConfidence);
+    }
+
+    item.append(description, confidenceDetails);
     elements.issuesList.append(item);
   }
 }
