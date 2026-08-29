@@ -34,7 +34,8 @@ class FrontendTests(unittest.TestCase):
         self.assertIn("severity confidence", self.javascript)
         self.assertIn("Issue confidence:", self.html)
         self.assertIn("Severity confidence:", self.html)
-        self.assertIn("Rule-based severity", self.javascript)
+        self.assertNotIn("Rule-based severity", self.javascript)
+        self.assertIn("hasSeverityConfidence", self.javascript)
 
 
 if __name__ == "__main__":
