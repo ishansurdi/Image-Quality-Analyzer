@@ -32,6 +32,9 @@ class FrontendTests(unittest.TestCase):
     def test_confidence_types_are_labelled(self) -> None:
         self.assertIn("issue confidence", self.javascript)
         self.assertIn("severity confidence", self.javascript)
+        self.assertIn("Issue confidence:", self.html)
+        self.assertIn("Severity confidence:", self.html)
+        self.assertIn("Rule-based severity", self.javascript)
 
 
 if __name__ == "__main__":
