@@ -7,7 +7,11 @@ from pathlib import Path
 
 import joblib
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.ensemble import (
+    HistGradientBoostingClassifier,
+    RandomForestClassifier,
+    RandomForestRegressor,
+)
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -48,6 +52,20 @@ def prepare_split(rows: list[dict[str, str]], split: str) -> tuple[np.ndarray, n
 
 def combine_splits(*splits: tuple[np.ndarray, np.ndarray, np.ndarray]):
     return tuple(np.concatenate(values) for values in zip(*splits))
+
+
+def prepare_issue_severity(
+    rows: list[dict[str, str]],
+    split: str,
+    issue: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    selected = [row for row in rows if row["split"] == split and row["issue"] == issue]
+    features = np.array(
+        [[float(row[field]) for field in FEATURE_FIELDS] for row in selected],
+        dtype=np.float32,
+    )
+    severities = np.array([row["severity"] for row in selected])
+    return features, severities
 
 
 def classification_metrics(
@@ -112,6 +130,12 @@ def train_models(
         n_jobs=-1,
         random_state=seed,
     )
+    compression_severity_classifier = HistGradientBoostingClassifier(
+        max_iter=300,
+        class_weight="balanced",
+        l2_regularization=1.0,
+        random_state=seed,
+    )
     synthetic_count = len(synthetic_train[0])
     kadid_count = len(kadid_train[0])
     classifier_weights = np.concatenate(
@@ -128,6 +152,30 @@ def train_models(
     )
     classifier.fit(train_x, train_issues, sample_weight=classifier_weights)
     regressor.fit(train_x, train_scores, sample_weight=regression_weights)
+
+    synthetic_compression = prepare_issue_severity(rows, "train", "compression")
+    kadid_compression = prepare_issue_severity(kadid_rows, "train", "compression")
+    compression_x = np.concatenate((synthetic_compression[0], kadid_compression[0]))
+    compression_severity = np.concatenate(
+        (synthetic_compression[1], kadid_compression[1])
+    )
+    compression_weights = np.concatenate(
+        (
+            np.full(len(synthetic_compression[0]), SYNTHETIC_REGRESSION_WEIGHT),
+            np.ones(len(kadid_compression[0])),
+        )
+    )
+    compression_severity_classifier.fit(
+        compression_x,
+        compression_severity,
+        sample_weight=compression_weights,
+    )
+    synthetic_compression_test = prepare_issue_severity(rows, "test", "compression")
+    kadid_compression_test = prepare_issue_severity(
+        kadid_rows,
+        "test",
+        "compression",
+    )
 
     labels = sorted(classifier.classes_.tolist())
     importance = sorted(
@@ -177,16 +225,29 @@ def train_models(
                 kadid_test[2], regressor.predict(kadid_test[0])
             ),
         },
+        "compression_severity": {
+            "synthetic_test": classification_metrics(
+                synthetic_compression_test[1],
+                compression_severity_classifier.predict(synthetic_compression_test[0]),
+                ["high", "low", "medium"],
+            ),
+            "kadid_test": classification_metrics(
+                kadid_compression_test[1],
+                compression_severity_classifier.predict(kadid_compression_test[0]),
+                ["high", "low", "medium"],
+            ),
+        },
         "feature_importance": {
             name: round(float(value), 6) for name, value in importance
         },
     }
     bundle = {
-        "model_version": "2.0.0",
+        "model_version": "2.1.0",
         "feature_names": list(FEATURE_FIELDS),
         "quality_scores": QUALITY_SCORES,
         "classifier": classifier,
         "regressor": regressor,
+        "compression_severity_classifier": compression_severity_classifier,
     }
     return bundle, report
 
