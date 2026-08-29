@@ -11,6 +11,12 @@ A simple full-stack application that uploads an image, detects quality problems,
 
 The model detects acceptable images, blur, noise, compression, underexposure, and overexposure. It can return multiple issues when both model predictions and image statistics show defects.
 
+## Severe degradation decision
+
+An image receives `POTENTIALLY_DEFECTIVE` when its quality score is below 40; this represents severe quality degradation. Unreadable or structurally corrupted files are rejected with HTTP `400` instead of being classified.
+
+The system evaluates whole-image quality and does not locate physical defects such as cracks or scratches. Compression is treated as a quality issue, while localized defect detection remains outside the current model scope.
+
 ## Datasets used
 
 - **BSDS500:** 500 natural images stored in `Data/images`; these are used to create controlled synthetic degradations.
@@ -78,6 +84,28 @@ The model bundle is stored at `artifacts/quality_model.joblib`; Joblib uses Pyth
 
 KADID macro F1 improved from 0.3384 with the previous synthetic-only model to 0.5173. The model artifact is about 46.76 MB and reports version `2.0.0`.
 
+## Incorrect and uncertain predictions
+
+- A bright, soft image can be reported as both blur and overexposure because both conditions affect edge and brightness features.
+- A clean image with little texture may look blurred to the model, while intentional dark or bright photography may be treated as an exposure problem.
+- Noise and compression can be confused because both create high-frequency artifacts; low confidence indicates that the selected class is uncertain.
+- Mixed or unfamiliar distortions may receive an inaccurate primary class because training covers only the five documented issue types.
+
+Confidence is the Random Forest probability of the predicted class, not a guarantee of correctness. Predictions near competing class probabilities should be reviewed together with severity, score, and image statistics.
+
+## Sample images
+
+These held-out BSDS and KADID examples demonstrate the six conditions used by the application.
+
+| Condition | Sample |
+| --- | --- |
+| Acceptable | [acceptable.jpg](samples/acceptable.jpg) |
+| Blur | [blur.jpg](samples/blur.jpg) |
+| Noise | [noise.jpg](samples/noise.jpg) |
+| Underexposure | [underexposure.jpg](samples/underexposure.jpg) |
+| Overexposure | [overexposure.jpg](samples/overexposure.jpg) |
+| Compression | [compression.png](samples/compression.png) |
+
 ## Backend
 
 The backend uses FastAPI, OpenCV, the trained Joblib model, and SQLite. It validates uploads, analyzes images, saves results, serves uploaded files, and returns standard HTTP status codes.
@@ -98,9 +126,37 @@ Local API documentation is available at `http://localhost:8000/docs`.
 
 JPEG, PNG, and WebP files up to 10 MB are supported. Important responses are `201` success, `400` unreadable image, `404` missing record, `413` too large, `415` unsupported type, and `422` invalid input.
 
+Upload an image with:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/analyses \
+  -F "image=@samples/blur.jpg"
+```
+
+Example response fields:
+
+```json
+{
+  "quality_score": 55.2,
+  "quality_label": "DEGRADED",
+  "issues": [{"type": "blur", "severity": "medium", "confidence": 0.78}],
+  "statistics": {"brightness_mean": 126.4, "laplacian_variance": 18.7}
+}
+```
+
 ## Backend configuration
 
 Copy `.env.example` values into Render or your local environment. Available variables are `MODEL_PATH`, `DATABASE_PATH`, `UPLOAD_DIR`, `MAX_UPLOAD_MB`, and `FRONTEND_ORIGINS`.
+
+## Database setup
+
+No manual migration is required: FastAPI creates the SQLite directory and `analyses` table during startup. `DATABASE_PATH` controls the database file location, with `backend/data/analyses.db` as the default.
+
+Render’s default filesystem is ephemeral, so analysis history can disappear after a restart or redeployment. Use a Render persistent disk and point `DATABASE_PATH` and `UPLOAD_DIR` to its mount path when permanent history is required.
+
+## Model loading and inference
+
+During FastAPI startup, `ImageAnalyzer` loads `artifacts/quality_model.joblib` once and keeps the classifier and regressor in application memory. Each request decodes one image, extracts the same 12 features, predicts class probabilities and quality score, then applies severity rules.
 
 ## Frontend
 
@@ -143,6 +199,7 @@ python -m pytest -q
 - `scripts/`: Dataset generation, validation, feature extraction, KADID preparation, and training.
 - `artifacts/`: Trained model bundle; generated feature CSV files remain ignored by Git.
 - `reports/`: Dataset and model evaluation reports.
+- `samples/`: Held-out example images for every supported quality condition.
 - `tests/`: Automated dataset, model, API, and frontend tests.
 
 ## Limitations
