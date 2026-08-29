@@ -160,6 +160,11 @@ function renderIssues(issues) {
       severityConfidence.className = "mt-0.5 text-xs text-slate-500";
       severityConfidence.textContent = `${Math.round(issue.severity_confidence * 100)}% severity confidence`;
       confidenceDetails.append(severityConfidence);
+    } else {
+      const severityMethod = document.createElement("p");
+      severityMethod.className = "mt-0.5 text-xs text-slate-500";
+      severityMethod.textContent = "Rule-based severity";
+      confidenceDetails.append(severityMethod);
     }
 
     item.append(description, confidenceDetails);
