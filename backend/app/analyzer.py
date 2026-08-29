@@ -66,6 +66,7 @@ class ImageAnalyzer:
             )
 
         severity = None
+        severity_confidence = None
         if predicted_issue == "blur":
             edge_density = statistics["edge_density"]
             gradient_strength = statistics["gradient_strength"]
@@ -79,7 +80,12 @@ class ImageAnalyzer:
                 severity = "low"
                 quality_score = min(quality_score, 80)
         elif predicted_issue == "compression":
-            severity = str(self.compression_severity_classifier.predict(values)[0])
+            severity_probabilities = self.compression_severity_classifier.predict_proba(
+                values
+            )[0]
+            severity_index = int(np.argmax(severity_probabilities))
+            severity = str(self.compression_severity_classifier.classes_[severity_index])
+            severity_confidence = float(severity_probabilities[severity_index])
             score_limits = {"high": 35, "medium": 60, "low": 80}
             quality_score = min(quality_score, score_limits[severity])
 
@@ -104,6 +110,11 @@ class ImageAnalyzer:
                     "type": predicted_issue,
                     "severity": severity,
                     "confidence": round(confidence, 4),
+                    "severity_confidence": (
+                        round(severity_confidence, 4)
+                        if severity_confidence is not None
+                        else None
+                    ),
                 }
             )
 
