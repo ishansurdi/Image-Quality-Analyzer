@@ -29,6 +29,10 @@ class FrontendTests(unittest.TestCase):
         self.assertNotIn("innerHTML", self.javascript)
         self.assertIn("textContent", self.javascript)
 
+    def test_confidence_types_are_labelled(self) -> None:
+        self.assertIn("issue confidence", self.javascript)
+        self.assertIn("severity confidence", self.javascript)
+
 
 if __name__ == "__main__":
     unittest.main()
