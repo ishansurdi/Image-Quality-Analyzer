@@ -64,6 +64,7 @@ class TrainedModelTests(unittest.TestCase):
         self.assertEqual(result["quality_label"], "POTENTIALLY_DEFECTIVE")
         self.assertEqual(result["issues"][0]["type"], "compression")
         self.assertEqual(result["issues"][0]["severity"], "high")
+        self.assertGreater(result["issues"][0]["severity_confidence"], 0.5)
 
 
 if __name__ == "__main__":
