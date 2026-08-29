@@ -17,6 +17,24 @@ The model detects acceptable images, blur, noise, compression, underexposure, an
 - **KADID-10k:** Real distorted images stored in `Data/kadid10k`; supported distortions and DMOS quality scores improve real-image performance.
 - **BSDS ground truth:** Boundary annotations are stored in `Data/ground_truth`; they are not required by the quality-classification model.
 
+## Dataset sources and citation
+
+- BSDS500 download: [Berkeley Segmentation Dataset 500 on Kaggle](https://www.kaggle.com/datasets/balraj98/berkeley-segmentation-dataset-500-bsds500)
+- KADID-10k download and details: [Official KADID-10k database](https://database.mmsp-kn.de/kadid-10k-database.html)
+
+KADID-10k is freely available to the research community. Research using the database or distortion code should cite:
+
+```bibtex
+@inproceedings{kadid10k,
+  title={KADID-10k: A Large-scale Artificially Distorted IQA Database},
+  author={Lin, Hanhe and Hosu, Vlad and Saupe, Dietmar},
+  booktitle={2019 Tenth International Conference on Quality of Multimedia Experience (QoMEX)},
+  pages={1--3},
+  year={2019},
+  organization={IEEE}
+}
+```
+
 ## Dataset preparation
 
 BSDS images are converted into six balanced classes using three severity levels. Source images remain in their original train, validation, or test split to prevent leakage.
