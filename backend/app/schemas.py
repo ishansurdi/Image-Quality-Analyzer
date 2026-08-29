@@ -14,6 +14,7 @@ class DetectedIssue(BaseModel):
     type: str
     severity: Severity
     confidence: float = Field(ge=0, le=1)
+    severity_confidence: float | None = Field(default=None, ge=0, le=1)
 
 
 class ImageStatistics(BaseModel):
