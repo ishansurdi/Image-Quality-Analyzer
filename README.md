@@ -152,9 +152,26 @@ Copy `.env.example` values into Render or your local environment. Available vari
 
 ## Database setup
 
-No manual migration is required: FastAPI creates the SQLite directory and `analyses` table during startup. `DATABASE_PATH` controls the database file location, with `backend/data/analyses.db` as the default.
+SQLite is used because it is lightweight, serverless, and sufficient for a single-instance project. Python includes its driver, so no separate database server or package is required.
 
-Render’s default filesystem is ephemeral, so analysis history can disappear after a restart or redeployment. Use a Render persistent disk and point `DATABASE_PATH` and `UPLOAD_DIR` to its mount path when permanent history is required.
+FastAPI initializes the database during startup. It creates the parent directory and the `analyses` table automatically with `CREATE TABLE IF NOT EXISTS`, so no manual migration command is needed.
+
+Each row stores the original and saved filenames, content type, image dimensions, quality score, quality label, detected issues, image statistics, and creation time. Issues and statistics are stored as JSON text and converted back to JSON in API responses.
+
+After successful inference, `POST /api/v1/analyses` saves the result and returns it. `GET /api/v1/analyses` provides paginated history, while `GET /api/v1/analyses/{id}` retrieves one record.
+
+All SQL values use parameterized queries, and every connection is committed and closed automatically. Uploaded image files are stored in `UPLOAD_DIR`; SQLite stores their generated filenames rather than the image bytes.
+
+`DATABASE_PATH` controls the SQLite file and defaults to `backend/data/analyses.db`. For local development, start the API normally and the database will be created on the first startup.
+
+Render’s default filesystem is ephemeral, so the database and uploaded files can disappear after a restart or redeployment. For permanent history, attach a persistent disk mounted at `/var/data` and set:
+
+```text
+DATABASE_PATH=/var/data/analyses.db
+UPLOAD_DIR=/var/data/uploads
+```
+
+This SQLite design is suitable for the current single Render instance. PostgreSQL should be used later if the application needs multiple backend instances or heavy concurrent writes.
 
 ## Model loading and inference
 
