@@ -54,6 +54,17 @@ class TrainedModelTests(unittest.TestCase):
         self.assertEqual(issue_types[0], "overexposure")
         self.assertIn("blur", issue_types)
 
+    def test_severe_compression_receives_low_quality_score(self) -> None:
+        image = cv2.imread("samples/compression.png")
+        analyzer = ImageAnalyzer(Path("artifacts/quality_model.joblib"))
+
+        result = analyzer.analyze(image)
+
+        self.assertLessEqual(result["quality_score"], 35)
+        self.assertEqual(result["quality_label"], "POTENTIALLY_DEFECTIVE")
+        self.assertEqual(result["issues"][0]["type"], "compression")
+        self.assertEqual(result["issues"][0]["severity"], "high")
+
 
 if __name__ == "__main__":
     unittest.main()
