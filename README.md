@@ -65,6 +65,8 @@ Each image is represented by 12 explainable statistics: brightness mean/std, dar
 
 The saved model contains a Random Forest classifier for issue detection and a Random Forest regressor for the quality score. Both use 150 trees and fixed seed `42` for reproducible training.
 
+A small histogram gradient-boosting classifier estimates compression severity directly. Its high, medium, and low predictions cap inconsistent compression scores at 35, 60, and 80.
+
 Random Forest was selected because it works well with a small tabular feature set, supports nonlinear relationships, needs little preprocessing, and provides feature importance. It is also fast enough for CPU inference on Render.
 
 Synthetic samples receive higher training weights to preserve clean/acceptable-image learning, while KADID adds realistic distortion patterns and DMOS score targets. The final training set contains 1,200 synthetic and 3,575 KADID rows.
@@ -82,7 +84,7 @@ The model bundle is stored at `artifacts/quality_model.joblib`; Joblib uses Pyth
 | Synthetic BSDS | 75.58% | 0.7414 | 11.98 |
 | KADID-10k | 65.91% | 0.5173 | 13.75 |
 
-KADID macro F1 improved from 0.3384 with the previous synthetic-only model to 0.5173. The model artifact is about 46.76 MB and reports version `2.0.0`.
+KADID macro F1 improved from 0.3384 with the previous synthetic-only model to 0.5173. The model artifact is about 49.57 MB and reports version `2.1.0`.
 
 ## Incorrect and uncertain predictions
 
@@ -156,7 +158,7 @@ Render’s default filesystem is ephemeral, so analysis history can disappear af
 
 ## Model loading and inference
 
-During FastAPI startup, `ImageAnalyzer` loads `artifacts/quality_model.joblib` once and keeps the classifier and regressor in application memory. Each request decodes one image, extracts the same 12 features, predicts class probabilities and quality score, then applies severity rules.
+During FastAPI startup, `ImageAnalyzer` loads `artifacts/quality_model.joblib` once and keeps its models in application memory. Each request extracts the same 12 features, predicts issues and score, then applies learned compression calibration and severity rules.
 
 ## Frontend
 
